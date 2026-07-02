@@ -1,0 +1,92 @@
+/* LANDIS-II Climate App Styles */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.navbar {
+  border-bottom: 2px solid #2c7bb6;
+}
+
+/* Card polish */
+.card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.card-header {
+  background-color: #f4f7fb;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Log output box */
+.shiny-text-output pre,
+pre.shiny-text-output {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: "Fira Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 6px;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Sidebar */
+.bslib-sidebar-layout > .sidebar {
+  background-color: #ffffff;
+  border-right: 1px solid #dee2e6;
+}
+
+/* Alert badges */
+.alert {
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* Action buttons */
+.btn-primary {
+  background-color: #2c7bb6;
+  border-color: #2c7bb6;
+}
+.btn-primary:hover {
+  background-color: #1f5c8b;
+  border-color: #1f5c8b;
+}
+
+/* Tab panels */
+.nav-tabs .nav-link.active {
+  color: #2c7bb6;
+  border-bottom-color: #2c7bb6;
+  font-weight: 600;
+}
+
+/* Plot containers */
+.shiny-plot-output {
+  border-radius: 4px;
+}
+
+/* DT tables */
+.dataTables_wrapper {
+  font-size: 0.88rem;
+}
+
+/* Section headers in sidebar */
+h6.text-secondary {
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  margin-bottom: 6px;
+}
+
+/* Corner color pills */
+.warm-dry { background-color: #D73027; color: white; padding: 2px 8px; border-radius: 3px; }
+.warm-wet { background-color: #FC8D59; color: white; padding: 2px 8px; border-radius: 3px; }
+.cool-dry { background-color: #4575B4; color: white; padding: 2px 8px; border-radius: 3px; }
+.cool-wet { background-color: #74ADD1; color: white; padding: 2px 8px; border-radius: 3px; }

@@ -1,0 +1,21 @@
+# R session / history
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# macOS
+.DS_Store
+
+# Climate data outputs (large; not tracked)
+*.nc
+*.tif
+*.tiff
+prism_raw/
+nex_gddp_nc/
+future_processed/
+future_biascorrected/
+future_with_wind/
+*_gridmet_wind_long*.csv
+hist_prism_*.csv
+prism_raw_*.csv
