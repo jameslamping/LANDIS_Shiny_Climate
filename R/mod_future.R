@@ -224,9 +224,14 @@ mod_future_server <- function(id, rv) {
                                   use_https = TRUE, region = "us-west-2")
               cat("  downloaded:", basename(key), "\n", file = log_file, append = TRUE)
               r <- terra::rast(tmp)
-              ti <- terra::time(r)
-              r  <- terra::subset(r, which(ti >= as.Date("2015-01-01") & ti <= as.Date("2100-12-31")))
-              cat("  subset ok:", basename(key), "\n", file = log_file, append = TRUE)
+              # Do NOT rely on terra::time() here. Newer terra versions (installed
+              # under R >= 4.5) return the NetCDF CF time as non-Date values, which
+              # broke the old date-based subset (=> "no valid layer selected").
+              # Every NEX-GDDP future file is a single calendar year within
+              # 2015-2100, so no time filtering is needed; keep all daily layers
+              # in chronological order. Dates are reconstructed from the filename
+              # year later in the processing step.
+              cat("  layers:", terra::nlyr(r), basename(key), "\n", file = log_file, append = TRUE)
               r  <- terra::rotate(r)
               r  <- terra::crop(r, terra::ext(bbox_coords[1], bbox_coords[2],
                                               bbox_coords[3], bbox_coords[4]), snap = "out")
@@ -401,6 +406,22 @@ future_processing_worker <- function(nc_dir, climreg_path, out_dir, park,
   options(scipen = 999)
   cat("=== Processing NetCDFs ===\n", file = log_file, append = TRUE)
 
+  # Reconstruct daily dates for a single-year raster from the file's year,
+  # instead of terra::time() (which is not read consistently across terra
+  # versions). Handles standard (gregorian) and 365_day (noleap) calendars.
+  nc_layer_dates <- function(r, year) {
+    n    <- terra::nlyr(r)
+    full <- seq(as.Date(paste0(year, "-01-01")),
+                as.Date(paste0(year, "-12-31")), by = "day")
+    if (n == length(full)) {
+      full                                              # gregorian (365 or 366)
+    } else if (n == 365 && length(full) == 366) {
+      full[format(full, "%m-%d") != "02-29"]            # noleap calendar, leap yr
+    } else {
+      as.Date(paste0(year, "-01-01")) + seq_len(n) - 1  # fallback (e.g. 360-day)
+    }
+  }
+
   nc_files <- list.files(nc_dir, pattern = "\\.nc$", full.names = TRUE)
   eco_r    <- rast(climreg_path); names(eco_r) <- "ecoregion"
 
@@ -410,6 +431,7 @@ future_processing_worker <- function(nc_dir, climreg_path, out_dir, park,
       model    = str_split_i(name, "_", 1),
       scenario = str_split_i(name, "_", 2),
       variable = str_split_i(name, "_", 3),
+      year     = as.integer(sub("\\.nc$", "", str_split_i(name, "_", 4))),
       group    = glue("{model}_{scenario}")
     ) %>%
     filter(model %in% models, scenario %in% scenarios)
@@ -426,9 +448,10 @@ future_processing_worker <- function(nc_dir, climreg_path, out_dir, park,
       model    <- sub_files[i,]$model
       scenario <- sub_files[i,]$scenario
       variable <- sub_files[i,]$variable
+      yr       <- sub_files[i,]$year
       eco_r2   <- rast(climreg_path); names(eco_r2) <- "ecoregion"
       r        <- rast(f)
-      dates    <- as.Date(time(r))
+      dates    <- nc_layer_dates(r, yr)
       names(r) <- as.character(dates)
       r <- project(r, crs(eco_r2))
       r <- resample(r, eco_r2, method = "bilinear", threads = FALSE)
