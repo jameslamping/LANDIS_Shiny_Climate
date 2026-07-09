@@ -122,9 +122,19 @@ mod_wind_server <- function(id, rv) {
               stop("Climate regions raster has no CRS — cannot derive AOI. ",
                    "Assign a coordinate reference system to your raster, or supply a State.")
             }
-            # Project raster extent to WGS84 lon/lat and build an AOI polygon
+            # Project raster extent to WGS84 lon/lat and build an AOI polygon.
+            # Buffer by ~0.1 deg (several GRIDMET cells): if the landscape is
+            # smaller than one GRIDMET pixel (~4 km / 0.0417 deg), getGridMET
+            # returns degenerate point data instead of a grid and rast() fails
+            # with "missing value where TRUE/FALSE needed". The buffer is
+            # harmless — the data is cropped and resampled back to the raster
+            # below before zonal statistics are computed.
             r_wgs <- project(r_climreg, "epsg:4326")
-            aoi   <- as.polygons(ext(r_wgs), crs = "epsg:4326")
+            e     <- ext(r_wgs)
+            buf   <- 0.1
+            aoi   <- as.polygons(ext(e$xmin - buf, e$xmax + buf,
+                                     e$ymin - buf, e$ymax + buf),
+                                 crs = "epsg:4326")
           }
 
           grid_vs <- getGridMET(AOI = aoi, varname = "vs",
