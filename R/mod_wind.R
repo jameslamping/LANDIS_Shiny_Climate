@@ -205,12 +205,21 @@ mod_wind_server <- function(id, rv) {
 
     # ── Append wind to historical ─────────────────────────────────────────
     observeEvent(input$append_historical, {
-      wl <- wind_long(); req(!is.null(wl))
+      wl <- wind_long()
+      if (is.null(wl)) {
+        showNotification("No wind data loaded. Download or upload a wind CSV first.",
+                         type = "error"); return()
+      }
       hist_path <- if (!is.null(input$hist_csv)) input$hist_csv$datapath else rv$prism_csv
-      req(!is.null(hist_path))
+      if (is.null(hist_path)) {
+        showNotification("No historical CSV available. Upload one (or set it on the PRISM tab).",
+                         type = "error"); return()
+      }
 
       withProgress(message = "Appending wind to historical CSV...", {
-        clim_hist <- readr::read_csv(hist_path, show_col_types = FALSE)
+        clim_hist <- readr::read_csv(hist_path, show_col_types = FALSE) %>%
+          normalize_clim_variables() %>%
+          drop_empty_climate_rows()
         eco_cols  <- get_eco_cols(clim_hist)
 
         wl2 <- wl %>%
@@ -241,10 +250,22 @@ mod_wind_server <- function(id, rv) {
 
     # ── Append wind to future files ───────────────────────────────────────
     observeEvent(input$append_future, {
-      wl <- wind_long(); req(!is.null(wl))
+      wl <- wind_long()
+      if (is.null(wl)) {
+        showNotification("No wind data loaded. Download or upload a wind CSV first.",
+                         type = "error"); return()
+      }
       fut_path <- if (nchar(trimws(input$fut_dir)) > 0) trimws(input$fut_dir)
                   else rv$biascorr_dir %||% rv$future_dir
-      req(!is.null(fut_path), dir.exists(fut_path))
+      if (is.null(fut_path) || !nzchar(fut_path)) {
+        showNotification(paste0("No future climate directory set. Enter the folder ",
+                                "containing your future CSVs in 'Future CSV Directory'."),
+                         type = "error", duration = 8); return()
+      }
+      if (!dir.exists(fut_path)) {
+        showNotification(paste0("Future CSV directory not found: ", fut_path),
+                         type = "error", duration = 8); return()
+      }
 
       set.seed(input$wind_seed)
 
@@ -263,7 +284,9 @@ mod_wind_server <- function(id, rv) {
           )
         hist_year_table <- wl2 %>% dplyr::distinct(hist_year, is_leap)
 
-        out_dir_fut <- file.path(rv$out_dir, "future_with_wind")
+        # Fall back to writing alongside the future files if no project out_dir
+        out_dir_base <- rv$out_dir %||% fut_path
+        out_dir_fut  <- file.path(out_dir_base, "future_with_wind")
         dir.create(out_dir_fut, recursive = TRUE, showWarnings = FALSE)
 
         for (i in seq_along(future_files)) {
@@ -271,7 +294,9 @@ mod_wind_server <- function(id, rv) {
           setProgress(i / length(future_files), paste("Processing", basename(fp)))
           cat("Processing:", basename(fp), "\n", file = log_file, append = TRUE)
 
-          clim_fut <- readr::read_csv(fp, show_col_types = FALSE)
+          clim_fut <- readr::read_csv(fp, show_col_types = FALSE) %>%
+            normalize_clim_variables() %>%
+            drop_empty_climate_rows()
           eco_cols <- get_eco_cols(clim_fut)
 
           clim_dates  <- lubridate::make_date(clim_fut$Year, clim_fut$Month, clim_fut$Day)

@@ -172,9 +172,17 @@ wind_long_to_wide <- function(wind_long, value_col, eco_cols) {
     dplyr::select(Year, Month, Day, dplyr::all_of(eco_cols))
 }
 
+# ── Drop entirely-empty rows (some CSV exports leave trailing all-NA rows) ────
+drop_empty_climate_rows <- function(df) {
+  if (!"Variable" %in% names(df)) return(df)
+  keep <- !is.na(df$Variable)
+  if ("Year" %in% names(df)) keep <- keep & !is.na(df$Year)
+  df[keep, , drop = FALSE]
+}
+
 # ── Add variable rows to a climate df if not already present ─────────────────
 add_variable_rows <- function(clim_df, var_name, wide_df, eco_cols) {
-  if (any(clim_df$Variable == var_name)) return(clim_df)
+  if (any(clim_df$Variable == var_name, na.rm = TRUE)) return(clim_df)
   dplyr::bind_rows(
     clim_df,
     wide_df %>%
